@@ -1,0 +1,11 @@
+[Unit]
+Description=Run misp-feeds-run.service every 3 days
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=3d
+Persistent=true
+Unit=misp-feeds-run.service
+
+[Install]
+WantedBy=timers.target
