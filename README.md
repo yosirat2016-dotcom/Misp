@@ -57,6 +57,29 @@ regenerates every source, and uses the MISP API to create/fetch each Feed
 automatically (no manual clicks). `scripts/sync_github_to_misp.py` is the
 entry point.
 
+MISP Auth Keys are only ever shown in full once, at creation time — if
+you've lost one, generate a new one (**Administration → List Auth Keys →
++ Add authentication key**) rather than trying to recover the old value.
+
+### Verifying data actually landed in MISP
+
+A Feed existing doesn't mean its data was imported - check both:
+
+1. **The Feed itself was registered:** **Sync Actions → Feeds** - look for
+   it Enabled/Caching-enabled with the right URL (e.g.
+   `http://172.17.0.1:8000/www-cisa-gov/`).
+2. **The events were actually pulled in:** **Event Actions → List Events**,
+   filter by Org (`CISA`, `NVD`, `gov.il-CERT-IL`, ...) or by tag
+   (`source:www-cisa-gov`). A registered-but-empty feed usually means
+   `fetch_feed()` triggered but the pull itself failed - check
+   **Administration → Jobs** on the MISP side.
+
+Quick event-count check from the command line instead of the UI:
+```bash
+curl -s -H "Authorization: <your MISP_API_KEY>" -H "Accept: application/json" \
+  "https://127.0.0.1/events/index" -k | python3 -c "import json,sys; print(len(json.load(sys.stdin)), 'events total')"
+```
+
 ## Project layout
 
 ```
