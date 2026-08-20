@@ -57,6 +57,13 @@ regenerates every source, and uses the MISP API to create/fetch each Feed
 automatically (no manual clicks). `scripts/sync_github_to_misp.py` is the
 entry point.
 
+Now: `scripts/sync_github_to_misp.py` does all of it — pulls
+`sources.csv` straight from GitHub, regenerates every source, and talks
+to MISP's API directly to create (or reuse) each Feed and trigger the
+fetch. Verified end-to-end with mocks: both "feed doesn't exist yet →
+create it" and "feed already exists → just re-fetch, no duplicate" paths
+work correctly.
+
 MISP Auth Keys are only ever shown in full once, at creation time — if
 you've lost one, generate a new one (**Administration → List Auth Keys →
 + Add authentication key**) rather than trying to recover the old value.
