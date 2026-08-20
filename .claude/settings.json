@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"/c/Users/yosir/MISP/data/raw\" \"/c/Users/yosir/MISP/docs\")",
+      "Bash(curl -s -o data/raw/urlhaus_recent.csv \"https://urlhaus.abuse.ch/downloads/csv_recent/\" -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(curl -s -o /tmp/psirt.html -w \"HTTP %{http_code}\\\\n\" \"https://www.fortiguard.com/psirt\")",
+      "Read(//tmp/**)",
+      "Bash(head -c 1500 /tmp/psirt.html)",
+      "Bash(grep -i -o -E \".{50}\\(error|denied|blocked|captcha|robot\\).{50}\" /tmp/psirt.html | head -5)",
+      "Bash(curl -s -o /tmp/psirt2.html -w \"HTTP %{http_code}\\\\n\" -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0 Safari/537.36\" \"https://www.fortiguard.com/psirt\")",
+      "Bash(grep -o -E '\\(FG-IR-[0-9]{2}-[0-9]{3}|href=\"[^\"]*advisor[^\"]*\"|href=\"[^\"]*psirt[^\"]*\"|href=\"[^\"]*rss[^\"]*\"|href=\"[^\"]*\\\\.json[^\"]*\"|href=\"[^\"]*api[^\"]*\"\\)' /tmp/psirt2.html | sort -u | head -30)",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0 Safari/537.36\" \"https://www.fortiguard.com/rss-feeds\" -o /tmp/rss.html -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(grep -o -E '.{80}\\(ir\\\\.xml|irdb\\\\.xml\\).{20}' /tmp/rss.html)",
+      "Bash(grep -B5 'ir\\\\.xml\"' /tmp/rss.html | grep -oE '<h[0-9][^>]*>[^<]*</h[0-9]>' | tail -3 *)",
+      "Bash(curl -s -o data/raw/fortiguard_psirt.xml -w \"HTTP %{http_code}\\\\n\" \"https://filestore.fortinet.com/fortiguard/rss/ir.xml\")",
+      "Bash(python scripts/xml_to_misp_feed.py)",
+      "Bash(python -c ' *)",
+      "Bash(python scripts/feed_to_misp.py \"https://filestore.fortinet.com/fortiguard/rss/ir.xml\")",
+      "Bash(python scripts/feed_to_misp.py \"https://urlhaus.abuse.ch/downloads/csv_recent/\")",
+      "Bash(rm -rf data/misp_feed/urlhaus-abuse-ch data/raw/urlhaus-abuse-ch.txt)",
+      "Bash(rm -rf data/misp_feed/urlhaus-abuse-ch data/raw/urlhaus-abuse-ch.csv)",
+      "Bash(python scripts/feed_to_misp.py \"https://urlhaus.abuse.ch/downloads/text_recent/\")",
+      "Bash(rm -rf data/misp_feed/urlhaus-abuse-ch)",
+      "Bash(rm -rf data/misp_feed/urlhaus-abuse-ch data/raw/urlhaus-abuse-ch.csv data/raw/urlhaus-abuse-ch.txt)",
+      "Bash(rm -rf data/misp_feed/filestore-fortinet-com)",
+      "Bash(python scripts/feed_to_misp.py \"https://support.hp.com/us-en/security-bulletins\")",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0 Safari/537.36\" \"https://support.hp.com/wcc-assets/main.659149f548f4be6d.js\" -o /tmp/hp_main.js -w \"HTTP %{http_code} size:%{size_download}\\\\n\")",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0 Safari/537.36\" -o /tmp/hp_rss_test.html -w \"HTTP %{http_code}  Content-Type:%{content_type}  Size:%{size_download}\\\\n\" \"https://support.hp.com/us-en/security-bulletin-rss\")",
+      "Bash(python scripts/feed_to_misp.py \"https://www.cisa.gov/known-exploited-vulnerabilities-catalog\")",
+      "Bash(rm -rf data/misp_feed/www-cisa-gov)",
+      "Bash(python scripts/feed_to_misp.py \"https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json\")",
+      "Bash(curl -s -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0 Safari/537.36\" \"https://www.cisa.gov/known-exploited-vulnerabilities-catalog\" -o /tmp/cisa_page.html)",
+      "Bash(rm -rf data/misp_feed/www-cisa-gov data/raw/www-cisa-gov.json)",
+      "Bash(python scripts/feed_to_misp.py \"https://www.fortiguard.com/psirt\")",
+      "Bash(rm -rf data/misp_feed/filestore-fortinet-com data/raw/filestore-fortinet-com.xml)",
+      "Bash(rm -rf data/misp_feed/www-fortiguard-com data/raw/www-fortiguard-com.txt)",
+      "Bash(rm -rf data/misp_feed/support-hp-com data/raw/support-hp-com.txt)",
+      "Bash(rm -rf scripts/__pycache__)",
+      "Bash(python scripts/feed_to_misp.py \"https://nvd.nist.gov/developers/vulnerabilities\")",
+      "Bash(rm -rf data/raw/nvd-nist-gov.json data/misp_feed/nvd-nist-gov)",
+      "Bash(python scripts/feed_to_misp.py \"https://www.gov.il/he/collectors/publications?officeId=4bcc13f5-fed6-4b8c-b8ee-7bf4a6bc81c8\")",
+      "Bash(rm -rf data/raw/www-gov-il.txt data/misp_feed/www-gov-il)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\yosir\\MISP\\data"
+    ]
+  }
+}

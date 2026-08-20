@@ -1,0 +1,21 @@
+# Generated feed output (regeneratable via scripts/run_feeds.py)
+data/raw/
+data/misp_feed/
+
+# Secrets
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Logs
+logs/*.log
+
+# Demo/scratch output
+Integration/misp-ti-integration/data_demo/
