@@ -1,9 +1,0 @@
-[Unit]
-Description=Run MISP feed ingestion (scripts/run_feeds.py)
-
-[Service]
-Type=oneshot
-WorkingDirectory=/home/rata/Desktop/Misp
-ExecStart=/usr/bin/python3 scripts/run_feeds.py
-StandardOutput=append:/home/rata/Desktop/Misp/logs/run_feeds.log
-StandardError=append:/home/rata/Desktop/Misp/logs/run_feeds.log

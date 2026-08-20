@@ -1,9 +1,0 @@
-[Unit]
-Description=Watch sources.csv and trigger misp-feeds-run.service on change
-
-[Path]
-PathModified=/home/rata/Desktop/Misp/scripts/sources.csv
-Unit=misp-feeds-run.service
-
-[Install]
-WantedBy=multi-user.target

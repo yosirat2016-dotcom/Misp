@@ -1,0 +1,2 @@
+pymisp>=2.4.180
+python-dotenv>=1.0

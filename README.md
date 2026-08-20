@@ -40,6 +40,7 @@ for examples of that pattern.
 
 ## Importing into MISP
 
+**Manual, one-off:**
 1. Serve the output folder over HTTP:
    ```bash
    cd data/misp_feed/<source>
@@ -50,15 +51,27 @@ for examples of that pattern.
    MISP requests `<url>/manifest.json`).
 3. **Fetch and store all feed data** to import.
 
+**Automated, scheduled:** see [`deploy/systemd/`](deploy/systemd/) — a
+GitHub-scheduled sync that pulls `sources.csv` from GitHub every 3 days,
+regenerates every source, and uses the MISP API to create/fetch each Feed
+automatically (no manual clicks). `scripts/sync_github_to_misp.py` is the
+entry point.
+
 ## Project layout
 
 ```
 scripts/
-  run_feeds.py            CSV-driven dispatcher (entry point)
-  sources.csv             source list: name,url,parser
+  run_feeds.py             CSV-driven dispatcher (manual/local entry point)
+  sync_github_to_misp.py   scheduled entry point: pulls sources.csv from
+                           GitHub, regenerates feeds, syncs into MISP via API
+  sources.csv              source list: name,url,parser
   feed_to_misp.py          generic RSS/JSON/CSV/text -> MISP feed converter
   nvd_to_misp.py           dedicated NVD CVE API converter
   govil_cve_to_misp.py     dedicated gov.il CVE advisories converter
+
+deploy/systemd/
+  systemd units for the scheduled sync + the persistent feed HTTP server.
+  See its own README for install steps.
 
 Integration/misp-ti-integration/
   A structured collector -> validator -> normalizer pipeline (in progress)
@@ -75,6 +88,9 @@ data/
 
 ## Requirements
 
-Standard library only for `scripts/` (uses `urllib`/`subprocess`, no
-external deps beyond `curl` on PATH). `Integration/misp-ti-integration/`
-has its own `requirements.txt` (`requests`, `pymisp`, `pytest`).
+`scripts/run_feeds.py` and the individual converters are standard-library
+only (`urllib`/`subprocess`, no external deps beyond `curl` on PATH).
+`scripts/sync_github_to_misp.py` needs `pymisp` and `python-dotenv` — see
+the root [`requirements.txt`](requirements.txt) (`pip install -r
+requirements.txt`). `Integration/misp-ti-integration/` has its own,
+separate `requirements.txt` (`requests`, `pymisp`, `pytest`).

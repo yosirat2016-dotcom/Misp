@@ -1,0 +1,10 @@
+[Unit]
+Description=Pull sources.csv from GitHub, regenerate feeds, sync into MISP
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/rata/Desktop/Misp
+ExecStart=/usr/bin/python3 scripts/sync_github_to_misp.py
+StandardOutput=append:/home/rata/Desktop/Misp/logs/sync_github_to_misp.log
+StandardError=append:/home/rata/Desktop/Misp/logs/sync_github_to_misp.log
