@@ -1,0 +1,11 @@
+[Unit]
+Description=Check sources.csv for changes every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=misp-csv-watch.service
+
+[Install]
+WantedBy=timers.target

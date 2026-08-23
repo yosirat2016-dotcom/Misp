@@ -19,3 +19,6 @@ logs/*.log
 
 # Demo/scratch output
 Integration/misp-ti-integration/data_demo/
+
+# Per-machine sync state (last-seen sources.csv hash)
+.state/

@@ -51,11 +51,16 @@ for examples of that pattern.
    MISP requests `<url>/manifest.json`).
 3. **Fetch and store all feed data** to import.
 
-**Automated, scheduled:** see [`deploy/systemd/`](deploy/systemd/) — a
-GitHub-scheduled sync that pulls `sources.csv` from GitHub every 3 days,
-regenerates every source, and uses the MISP API to create/fetch each Feed
-automatically (no manual clicks). `scripts/sync_github_to_misp.py` is the
-entry point.
+**Automated, scheduled:** see [`deploy/systemd/`](deploy/systemd/) — two
+timers: a full sync every 3 days regardless (so existing sources keep
+picking up new IOCs), plus a lightweight check every 5 minutes that only
+downloads `sources.csv` itself and triggers a full sync if it actually
+changed — so a new row in the CSV gets picked up fast without hammering
+rate-limited sources like NVD/gov.il on every tick. Both paths use the
+MISP API to create/fetch each Feed automatically (no manual clicks).
+`scripts/sync_github_to_misp.py` (full sync) and
+`scripts/check_sources_csv_changed.py` (change detector) are the entry
+points.
 
 Now: `scripts/sync_github_to_misp.py` does all of it — pulls
 `sources.csv` straight from GitHub, regenerates every source, and talks
@@ -164,7 +169,17 @@ data/
   create a Feed if one doesn't exist yet (matched by URL, so re-runs
   don't create duplicates) or reuse an existing one, and triggers the
   fetch — no manual "Add Feed"/"Fetch and store" clicks needed. This is
-  what `deploy/systemd/misp-github-sync.timer` runs every 3 days.
+  the expensive full run (hits every source, including rate-limited
+  ones); `deploy/systemd/misp-github-sync.timer` runs it unconditionally
+  every 3 days.
+
+- **`check_sources_csv_changed.py`** — a cheap, frequent poll. Downloads
+  just `sources.csv` (a few KB, no rate-limit concern) and compares its
+  hash against the last-seen value in `.state/sources_csv.sha256`. If
+  unchanged, exits immediately. If changed, imports and runs
+  `sync_github_to_misp.py`'s full sync. This is what lets a new CSV row
+  get picked up within minutes without hammering NVD/gov.il on every
+  tick — `deploy/systemd/misp-csv-watch.timer` runs it every 5 minutes.
 
 - **`sources.csv`** — not code, but the config every converter above
   reads: `name,url,parser` per row.
@@ -173,8 +188,9 @@ data/
 
 Not Python, but part of the automation: `misp-feeds-http.service` keeps
 `data/misp_feed/` served over HTTP continuously; `misp-github-sync.timer`
-fires `misp-github-sync.service` (which just runs `sync_github_to_misp.py`)
-every 3 days. See that folder's own README for install steps.
+runs the full sync every 3 days regardless; `misp-csv-watch.timer` checks
+every 5 minutes for a CSV change and triggers a full sync only when one's
+detected. See that folder's own README for install steps.
 
 ### `Integration/misp-ti-integration/`
 

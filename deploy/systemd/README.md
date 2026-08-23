@@ -5,16 +5,30 @@ GitHub is the single source of truth: pushing a change to
 ingested. There is no local file-watch - everything runs on a schedule
 and always pulls the CSV fresh from GitHub.
 
-Three systemd units:
+Five systemd units:
 
 - **`misp-feeds-http.service`** - long-running. Serves `data/misp_feed/`
   over HTTP on port 8000 so MISP can always reach it. Restarts on failure.
 - **`misp-github-sync.service`** - one-shot. Downloads `sources.csv` from
   GitHub, regenerates every source's feed files, then uses the MISP API
   to create (if it doesn't exist yet) and fetch each Feed - no manual
-  "Add Feed" / "Fetch and store" clicks needed.
-- **`misp-github-sync.timer`** - fires `misp-github-sync.service` every
-  3 days (plus once ~10 minutes after boot).
+  "Add Feed" / "Fetch and store" clicks needed. This is the expensive
+  part - it hits every source, including rate-limited/WAF-protected ones
+  like NVD and gov.il.
+- **`misp-github-sync.timer`** - fires `misp-github-sync.service`
+  unconditionally every 3 days (plus once ~10 minutes after boot), so
+  existing sources still pick up new IOCs even if `sources.csv` never
+  changes.
+- **`misp-csv-watch.service`** - one-shot. Downloads just `sources.csv`
+  (a few KB, no rate-limit concern) and compares its hash against the
+  last-seen value in `.state/sources_csv.sha256`. If unchanged, exits
+  immediately. If changed, triggers `misp-github-sync.service`'s full
+  run so a new row gets picked up fast.
+- **`misp-csv-watch.timer`** - fires `misp-csv-watch.service` every
+  5 minutes. Safe to run this often specifically *because* it only
+  downloads the small CSV each time, not the actual feeds - the
+  expensive/rate-limited work only happens when something actually
+  changed.
 
 ## Prerequisites
 
@@ -33,7 +47,7 @@ Three systemd units:
 
 ## Install (on Kali, where the repo is cloned)
 
-1. Edit `WorkingDirectory=` in all three `.service`/`.timer` files if your
+1. Edit `WorkingDirectory=` in all `.service`/`.timer` files if your
    clone isn't at `/home/rata/Desktop/Misp`.
 
 2. Copy the units in and reload:
@@ -41,6 +55,8 @@ Three systemd units:
    sudo cp deploy/systemd/misp-feeds-http.service /etc/systemd/system/
    sudo cp deploy/systemd/misp-github-sync.service /etc/systemd/system/
    sudo cp deploy/systemd/misp-github-sync.timer /etc/systemd/system/
+   sudo cp deploy/systemd/misp-csv-watch.service /etc/systemd/system/
+   sudo cp deploy/systemd/misp-csv-watch.timer /etc/systemd/system/
    sudo systemctl daemon-reload
    ```
 
@@ -48,6 +64,7 @@ Three systemd units:
    ```bash
    sudo systemctl enable --now misp-feeds-http.service
    sudo systemctl enable --now misp-github-sync.timer
+   sudo systemctl enable --now misp-csv-watch.timer
    ```
 
 ## Verify
@@ -57,12 +74,18 @@ Three systemd units:
 systemctl status misp-feeds-http.service
 curl http://127.0.0.1:8000/
 
-# Timer is scheduled
-systemctl list-timers misp-github-sync.timer
+# Timers are scheduled
+systemctl list-timers misp-github-sync.timer misp-csv-watch.timer
 
-# Trigger a sync manually to test everything end to end
+# Trigger a full sync manually to test everything end to end
 sudo systemctl start misp-github-sync.service
 journalctl -u misp-github-sync.service -n 80 --no-pager
+
+# Trigger the CSV watcher manually - first run should always report
+# "changed" (no prior state) and trigger a full sync; run it again
+# immediately after and it should report "unchanged"
+sudo systemctl start misp-csv-watch.service
+journalctl -u misp-csv-watch.service -n 20 --no-pager
 ```
 
 A successful manual run should print a per-source summary ending in
@@ -95,4 +118,12 @@ sudo systemctl daemon-reload
   `Integration/misp-ti-integration/`.
 - One source failing (bad URL, MISP rejects the feed, network hiccup)
   doesn't stop the others - each is isolated and reported in the summary.
-- Logs: `logs/sync_github_to_misp.log` (appended, not rotated).
+- `misp-csv-watch.service` intentionally never touches NVD/gov.il/etc.
+  directly - it only ever downloads `sources.csv` itself. The 5-minute
+  cadence is safe *because* of that; do not repoint it at anything more
+  expensive.
+- `.state/sources_csv.sha256` is per-machine and gitignored - deleting it
+  (or running on a fresh clone) makes the next `misp-csv-watch` tick
+  treat the CSV as "changed" and trigger one full sync, which is expected.
+- Logs: `logs/sync_github_to_misp.log` and `logs/csv_watch.log` (both
+  appended, not rotated).

@@ -1,0 +1,10 @@
+[Unit]
+Description=Check sources.csv on GitHub for changes; trigger full sync only if changed
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/rata/Desktop/Misp
+ExecStart=/usr/bin/python3 scripts/check_sources_csv_changed.py
+StandardOutput=append:/home/rata/Desktop/Misp/logs/csv_watch.log
+StandardError=append:/home/rata/Desktop/Misp/logs/csv_watch.log
