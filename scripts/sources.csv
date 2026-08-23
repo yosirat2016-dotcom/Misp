@@ -4,7 +4,7 @@ nvd-recent,https://services.nvd.nist.gov/rest/json/cves/2.0,nvd
 govil-cve-advisories,https://www.gov.il/en/departments/dynamiccollectors/cve_advisories_listing,govil-cve
 ipsum-level3,https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt,generic
 fortiguard-psirt,https://filestore.fortinet.com/fortiguard/rss/ir.xml,generic
-HP,https://support.hp.com/us-en/security-bulletins,generic
+hp-security-bulletins,https://support.hp.com/wcc-widget-services/us-en/rss-feed?category=all,generic
 CISA (Cybersecurity & Infrastructure Security Agency),https://www.cisa.gov/,CSV/JSON/STIX,US Government agency reporting on documented attacks and vulnerabilities
 AlienVault OTX,https://otx.alienvault.com/,JSON API/CSV/STIX,Community platform with manually and automatically submitted IOCs
 Abuse.ch - Malware Bazaar,https://bazaar.abuse.ch/,JSON API/CSV,Repository of malware with virus and trojan IOCs
