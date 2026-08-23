@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/rata/Desktop/Misp/data/misp_feed
+WorkingDirectory=/home/rata/Desktop/MISP/Misp/data/misp_feed
 ExecStart=/usr/bin/python3 -m http.server 8000
 Restart=always
 RestartSec=5

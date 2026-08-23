@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/rata/Desktop/Misp
+WorkingDirectory=/home/rata/Desktop/MISP/Misp
 ExecStart=/usr/bin/python3 scripts/check_sources_csv_changed.py
-StandardOutput=append:/home/rata/Desktop/Misp/logs/csv_watch.log
-StandardError=append:/home/rata/Desktop/Misp/logs/csv_watch.log
+StandardOutput=append:/home/rata/Desktop/MISP/Misp/logs/csv_watch.log
+StandardError=append:/home/rata/Desktop/MISP/Misp/logs/csv_watch.log

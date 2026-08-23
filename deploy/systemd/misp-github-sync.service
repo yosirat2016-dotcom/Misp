@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=/home/rata/Desktop/Misp
+WorkingDirectory=/home/rata/Desktop/MISP/Misp
 ExecStart=/usr/bin/python3 scripts/sync_github_to_misp.py
-StandardOutput=append:/home/rata/Desktop/Misp/logs/sync_github_to_misp.log
-StandardError=append:/home/rata/Desktop/Misp/logs/sync_github_to_misp.log
+StandardOutput=append:/home/rata/Desktop/MISP/Misp/logs/sync_github_to_misp.log
+StandardError=append:/home/rata/Desktop/MISP/Misp/logs/sync_github_to_misp.log
