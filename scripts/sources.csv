@@ -1,2 +1,20 @@
 name,url,parser
 cisa-kev,https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json,generic
+nvd-recent,https://services.nvd.nist.gov/rest/json/cves/2.0,nvd
+govil-cve-advisories,https://www.gov.il/en/departments/dynamiccollectors/cve_advisories_listing,govil-cve
+ipsum-level3,https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt,generic
+fortiguard-psirt,https://filestore.fortinet.com/fortiguard/rss/ir.xml,generic
+hp-security-bulletins,https://support.hp.com/wcc-widget-services/us-en/rss-feed?category=all,generic
+CISA (Cybersecurity & Infrastructure Security Agency),https://www.cisa.gov/,needs-research
+AlienVault OTX,https://otx.alienvault.com/,needs-research
+Abuse.ch - Malware Bazaar,https://bazaar.abuse.ch/,needs-research
+Abuse.ch - ThreatFox,https://threatfox.abuse.ch/,needs-research
+Abuse.ch - URLhaus,https://urlhaus.abuse.ch/,needs-research
+Shodan,https://www.shodan.io/,needs-research
+Team Cymru,https://www.team-cymru.com/,needs-research
+GreyNoise,https://www.greynoise.io/,needs-research
+Hybrid Analysis,https://www.hybrid-analysis.com/,needs-research
+Triage,https://triage.abuse.ch/,needs-research
+AbuseIPDB,https://www.abuseipdb.com/,needs-research
+threatfox,https://threatfox.abuse.ch/browse/tag/triage/,needs-research
+
