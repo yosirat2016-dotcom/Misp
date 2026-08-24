@@ -127,3 +127,110 @@ sudo systemctl daemon-reload
   treat the CSV as "changed" and trigger one full sync, which is expected.
 - Logs: `logs/sync_github_to_misp.log` and `logs/csv_watch.log` (both
   appended, not rotated).
+
+## Troubleshooting
+
+Three separate, unrelated issues have come up in practice - check these
+in order if MISP shows "Not cached" / feeds aren't producing events.
+
+### 1. `misp-feeds-http.service` isn't actually running
+
+**Symptom:** MISP shows `curl error 7 'Could not connect to server'`
+when trying to fetch a feed.
+
+**Diagnose:**
+```bash
+systemctl status misp-feeds-http.service
+sudo cat /etc/systemd/system/misp-feeds-http.service | grep WorkingDirectory
+```
+If status shows `activating (auto-restart)` with `status=200/CHDIR`,
+the installed unit's `WorkingDirectory=` points at a path that doesn't
+exist - usually because it was installed before being edited to match
+your actual clone location, or a stale copy got re-installed.
+
+**Fix:**
+```bash
+cd <your repo root>
+git pull
+sudo cp deploy/systemd/misp-feeds-http.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart misp-feeds-http.service
+```
+**Verify** (don't proceed until this actually works):
+```bash
+systemctl status misp-feeds-http.service   # must show "active (running)"
+curl http://127.0.0.1:8000/                # must return a directory listing
+```
+
+### 2. Scripts run from the wrong working directory
+
+**Symptom:** the HTTP server is running, but serves an empty directory
+even after running `sync_github_to_misp.py`.
+
+**Diagnose:**
+```bash
+ls -la <repo root>/data/misp_feed/            # where the server looks
+ls -la <repo root>/scripts/data/misp_feed/    # check here too
+```
+The scripts write to the *relative* path `data/misp_feed/` - running
+them from inside `scripts/` creates `scripts/data/misp_feed/` instead,
+a different location than the HTTP server and MISP's Feed URLs expect.
+
+**Fix:** always run from the repo root, never from inside `scripts/`:
+```bash
+cd <repo root>
+python3 scripts/sync_github_to_misp.py
+```
+
+### 3. `sources.csv` reverted to a junk-producing state
+
+**Symptom:** a source that was previously fixed and verified (e.g.
+`nvd-recent`, `govil-cve-advisories`) is back to `parser=generic`, or a
+`needs-research` placeholder row got flipped to `generic` and actually
+ran - producing 1-5 event feeds full of scraped JS/analytics noise
+instead of real threat intel, or corrupting a dedicated source (NVD:
+0 attributes; gov.il: wrong slug, tiny event count).
+
+**Diagnose:**
+```bash
+git fetch origin
+git log origin/main --oneline -5
+git show origin/main:scripts/sources.csv
+```
+
+**Fix:** restore the last known-good version:
+```bash
+git checkout <last-good-commit-hash> -- scripts/sources.csv
+git add scripts/sources.csv
+git commit -m "Restore correct parsers"
+git push
+```
+Two rules that must hold for `sources.csv`:
+- `nvd-recent` must stay `parser=nvd` (NVD's JSON is too deeply nested
+  for `generic` - produces 0 real attributes)
+- `govil-cve-advisories` must stay `parser=govil-cve` (gov.il is a
+  JS-rendered page behind a WAF - `generic` can't reach the real data)
+- Any `needs-research` row must stay that way until its real API
+  endpoint is individually found and verified - every one currently
+  marked that way has already been tested and confirmed to produce junk
+  under `generic`
+
+**If a bad state actually reached MISP** (the HTTP server was running
+when it happened), clean up manually:
+1. **Sync Actions → Feeds** - delete any Feed entries that got
+   auto-created for `needs-research` sources
+2. **Event Actions → List Events** - search by tag/org for those sources,
+   delete any junk events found
+3. Re-run `sync_github_to_misp.py` after the CSV fix to regenerate
+   correct data for any source that got corrupted
+
+### Getting the real MISP error message
+
+The Jobs list (**Administration → Jobs**) only shows a generic `"Job
+failed. See error log for more details"` - the actual error isn't
+exposed in Audit Logs or Application Logs in the web UI. Get it from the
+container's filesystem instead:
+```bash
+docker ps -a                                # find the MISP core container name
+docker exec <container-name> tail -n 100 /var/www/MISP/app/tmp/logs/error.log
+```
