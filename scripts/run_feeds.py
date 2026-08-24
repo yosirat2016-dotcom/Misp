@@ -10,6 +10,8 @@ CSV columns: name,url,parser
              generic    -> feed_to_misp.py (auto-detects RSS/JSON/CSV/text)
              nvd        -> nvd_to_misp.py (NVD CVE API 2.0)
              govil-cve  -> govil_cve_to_misp.py (gov.il CVE advisories)
+             threatfox  -> threatfox_to_misp.py (abuse.ch ThreatFox API,
+                            needs ABUSECH_API_KEY in .env)
            Adding a new source that fits the generic converter needs no
            code change - just a new CSV row with parser=generic. A source
            that needs its own logic (like NVD or gov.il) needs a new
@@ -32,6 +34,7 @@ from pathlib import Path
 import feed_to_misp
 import govil_cve_to_misp
 import nvd_to_misp
+import threatfox_to_misp
 
 
 def run_generic(name: str, url: str):
@@ -46,10 +49,15 @@ def run_govil_cve(name: str, url: str):
     return govil_cve_to_misp.convert(out_base=f"data/misp_feed/{name}", org=name)
 
 
+def run_threatfox(name: str, url: str):
+    return threatfox_to_misp.convert(out_base=f"data/misp_feed/{name}", org=name)
+
+
 PARSERS = {
     "generic": run_generic,
     "nvd": run_nvd,
     "govil-cve": run_govil_cve,
+    "threatfox": run_threatfox,
 }
 
 
