@@ -243,7 +243,9 @@ reverting to a junk-producing state — each with diagnose/fix/verify
 commands, plus how to pull MISP's real error message out of the
 container's log file when the web UI's Jobs/Audit Logs aren't enough.
 See [`deploy/systemd/README.md`](deploy/systemd/README.md#troubleshooting)
-for the full writeup.
+for the reference guide, or
+[`docs/incident-2026-08-24-feed-sync.md`](docs/incident-2026-08-24-feed-sync.md)
+for the full incident writeup of the day all three issues were found.
 
 ## Requirements
 
