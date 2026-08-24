@@ -233,6 +233,18 @@ than the CSV/multi-source approach above:
   using mocked data so they never require a real URLhaus key or MISP
   instance to run.
 
+## Troubleshooting
+
+If MISP shows feeds as "Not cached" or feed data isn't landing as
+events, three unrelated issues have come up in practice — the HTTP
+server crash-looping on a bad `WorkingDirectory`, scripts run from the
+wrong directory writing data to the wrong path, and `sources.csv`
+reverting to a junk-producing state — each with diagnose/fix/verify
+commands, plus how to pull MISP's real error message out of the
+container's log file when the web UI's Jobs/Audit Logs aren't enough.
+See [`deploy/systemd/README.md`](deploy/systemd/README.md#troubleshooting)
+for the full writeup.
+
 ## Requirements
 
 `scripts/run_feeds.py` and the individual converters are standard-library
