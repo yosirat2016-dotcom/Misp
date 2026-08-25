@@ -7,36 +7,41 @@ served over HTTP and imported into MISP.
 ## Quick start
 
 ```bash
-python scripts/run_feeds.py
+python scripts/feed_to_misp.py "<url>" --org "SomeName"
 ```
 
-Runs every source listed in [`scripts/sources.csv`](scripts/sources.csv)
-and writes MISP events to `data/misp_feed/<source>/`.
+Fetches a single URL, auto-detects its format, and writes MISP events to
+`data/misp_feed/<slug>/`. This is the standalone, one-off way to convert
+any RSS/JSON/CSV/text feed.
 
-Run a subset:
-
-```bash
-python scripts/run_feeds.py --only cisa-kev,nvd-recent
-```
+For the CSV-driven scheduled pipeline (multiple sources, auto-registers
+Feeds in MISP), see [`scripts/sync_github_to_misp.py`](#importing-into-misp)
+below.
 
 ## Sources
 
 | name | source | parser |
 |---|---|---|
 | `cisa-kev` | CISA Known Exploited Vulnerabilities catalog | generic |
-| `nvd-recent` | NVD CVE API 2.0 (recently published CVEs) | dedicated (`nvd_to_misp.py`) |
-| `govil-cve-advisories` | Israel National Cyber Directorate CVE advisories | dedicated (`govil_cve_to_misp.py`) |
 | `ipsum-level3` | IPsum malicious IP blocklist | generic |
 | `fortiguard-psirt` | Fortinet PSIRT advisories (RSS) | generic |
 | `hp-security-bulletins` | HP security bulletins (RSS) | generic |
+| `threatfox-abuse-ch` | abuse.ch ThreatFox API | dedicated (`threatfox_to_misp.py`) |
 
 Add a new source that's plain RSS/JSON/CSV/text: just add a row to
 `sources.csv` with `parser=generic` — no code change needed. A source
-that needs special handling (auth, pagination, deeply nested JSON, a
-JS-rendered page with no visible feed) needs a small dedicated script
-exposing a `convert(...)` function, registered in `run_feeds.py`'s
-`PARSERS` dict. See `scripts/nvd_to_misp.py` or `scripts/govil_cve_to_misp.py`
-for examples of that pattern.
+that needs special handling (auth, pagination, a JS-rendered page with
+no visible feed) needs a small dedicated script exposing a `convert(...)`
+function, registered in `sync_github_to_misp.py`'s `PARSERS` dict. See
+`scripts/threatfox_to_misp.py` for an example of that pattern.
+
+NVD and Israel's gov.il CVE advisories were previously supported via
+dedicated scripts (`nvd_to_misp.py`, `govil_cve_to_misp.py`) but those
+were removed to keep the pipeline to just the generic converter plus
+one dedicated example. Re-adding either would mean rebuilding that
+dedicated-script logic from scratch — both sources need it: NVD nests
+everything under a `cve: {...}` wrapper the generic converter can't
+reach, and gov.il is a JS-rendered SPA behind a WAF with no visible feed.
 
 ## Importing into MISP
 
@@ -55,8 +60,8 @@ for examples of that pattern.
 timers: a full sync every 3 days regardless (so existing sources keep
 picking up new IOCs), plus a lightweight check every 5 minutes that only
 downloads `sources.csv` itself and triggers a full sync if it actually
-changed — so a new row in the CSV gets picked up fast without hammering
-rate-limited sources like NVD/gov.il on every tick. Both paths use the
+changed — so a new row in the CSV gets picked up fast without re-fetching
+every source's actual data on every 5-minute tick. Both paths use the
 MISP API to create/fetch each Feed automatically (no manual clicks).
 `scripts/sync_github_to_misp.py` (full sync) and
 `scripts/check_sources_csv_changed.py` (change detector) are the entry
@@ -81,7 +86,7 @@ A Feed existing doesn't mean its data was imported - check both:
    it Enabled/Caching-enabled with the right URL (e.g.
    `http://172.17.0.1:8000/www-cisa-gov/`).
 2. **The events were actually pulled in:** **Event Actions → List Events**,
-   filter by Org (`CISA`, `NVD`, `gov.il-CERT-IL`, ...) or by tag
+   filter by Org (`CISA`, `Abuse.ch - ThreatFox`, ...) or by tag
    (`source:www-cisa-gov`). A registered-but-empty feed usually means
    `fetch_feed()` triggered but the pull itself failed - check
    **Administration → Jobs** on the MISP side.
@@ -96,13 +101,15 @@ curl -s -H "Authorization: <your MISP_API_KEY>" -H "Accept: application/json" \
 
 ```
 scripts/
-  run_feeds.py             CSV-driven dispatcher (manual/local entry point)
-  sync_github_to_misp.py   scheduled entry point: pulls sources.csv from
-                           GitHub, regenerates feeds, syncs into MISP via API
-  sources.csv              source list: name,url,parser
   feed_to_misp.py          generic RSS/JSON/CSV/text -> MISP feed converter
-  nvd_to_misp.py           dedicated NVD CVE API converter
-  govil_cve_to_misp.py     dedicated gov.il CVE advisories converter
+                           (also the standalone one-off entry point)
+  threatfox_to_misp.py     dedicated abuse.ch ThreatFox API converter
+  sync_github_to_misp.py   CSV-driven, scheduled entry point: pulls
+                           sources.csv from GitHub, dispatches each row to
+                           the right converter, syncs into MISP via API
+  check_sources_csv_changed.py  cheap poll that triggers sync_github_to_misp.py
+                           only when sources.csv actually changed
+  sources.csv              source list: name,url,parser
 
 deploy/systemd/
   systemd units for the scheduled sync + the persistent feed HTTP server.
@@ -138,48 +145,38 @@ data/
   top-level JSON keys (fails on deeply nested structures like NVD's), and
   can't execute JavaScript (fails on client-rendered SPA pages).
 
-- **`nvd_to_misp.py`** — dedicated converter for the NVD CVE API 2.0.
-  Exists because NVD nests everything useful (description, CVSS score,
-  references) under a `cve: {...}` wrapper and inside lists, which the
-  generic converter can't reach. Paginates through NVD's API for a given
-  date range, pulls the best available CVSS score (prefers v3.1, falls
-  back to v3.0 then v2), and builds one MISP event per CVE with
-  `vulnerability`/`text`/`float`/`weakness`/`link` attributes.
+- **`threatfox_to_misp.py`** — dedicated converter for abuse.ch's
+  ThreatFox. Exists because ThreatFox's `/browse/` page looks like it has
+  real data in a browser, but that table is populated client-side
+  (DataTables JS) — the raw HTML has none of it, which is why the
+  generic converter previously captured literal `<!doctype html>` as
+  junk. Uses ThreatFox's real API instead (`POST
+  https://threatfox-api.abuse.ch/api/v1/`, `Auth-Key` header — same free
+  abuse.ch key as URLhaus), with correct `ioc_type` → MISP attribute
+  mapping including the `ip:port` → MISP's composite `ip-dst|port` type.
 
-- **`govil_cve_to_misp.py`** — dedicated converter for Israel's National
-  Cyber Directorate CVE advisories. Exists because that page is a
-  Cloudflare-protected Angular single-page app with no visible feed — the
-  real data API (`POST /en/api/DynamicCollector`) and its page-specific
-  `DynamicTemplateID` had to be found by reading the page's JS bundle.
-  Also works around a WAF that fingerprints and blocks Python's
-  `urllib`/`requests` after one call by shelling out to `curl` instead.
-
-- **`run_feeds.py`** — the CSV-driven dispatcher and the main manual entry
-  point. Reads `sources.csv`, and for each row calls the right converter
-  based on its `parser` column (`generic`, `nvd`, or `govil-cve`). One
-  source failing doesn't stop the others — each is isolated, and a
-  summary table prints at the end. Supports `--only name1,name2` to run a
-  subset.
-
-- **`sync_github_to_misp.py`** — the scheduled automation entry point.
-  Downloads `sources.csv` straight from GitHub (so a `git push` to that
-  file is what changes what gets ingested), runs every source through
-  the same dispatcher logic as `run_feeds.py`, then talks to the MISP API
-  directly (via PyMISP's `feeds()`/`add_feed()`/`fetch_feed()`) to
-  create a Feed if one doesn't exist yet (matched by URL, so re-runs
+- **`sync_github_to_misp.py`** — the CSV-driven, scheduled automation
+  entry point. Downloads `sources.csv` straight from GitHub (so a `git
+  push` to that file is what changes what gets ingested), and for each
+  row dispatches to the right converter based on its `parser` column
+  (`generic` or `threatfox` — its own small `PARSERS` dict, defined in
+  this file). One source failing doesn't stop the others — each is
+  isolated, and a summary table prints at the end. It also talks to the
+  MISP API directly (via PyMISP's `feeds()`/`add_feed()`/`fetch_feed()`)
+  to create a Feed if one doesn't exist yet (matched by URL, so re-runs
   don't create duplicates) or reuse an existing one, and triggers the
   fetch — no manual "Add Feed"/"Fetch and store" clicks needed. This is
-  the expensive full run (hits every source, including rate-limited
-  ones); `deploy/systemd/misp-github-sync.timer` runs it unconditionally
-  every 3 days.
+  the expensive full run (hits every source); `deploy/systemd/misp-github-sync.timer`
+  runs it unconditionally every 3 days.
 
 - **`check_sources_csv_changed.py`** — a cheap, frequent poll. Downloads
   just `sources.csv` (a few KB, no rate-limit concern) and compares its
   hash against the last-seen value in `.state/sources_csv.sha256`. If
   unchanged, exits immediately. If changed, imports and runs
   `sync_github_to_misp.py`'s full sync. This is what lets a new CSV row
-  get picked up within minutes without hammering NVD/gov.il on every
-  tick — `deploy/systemd/misp-csv-watch.timer` runs it every 5 minutes.
+  get picked up within minutes without re-fetching every source's actual
+  data on every 5-minute tick — `deploy/systemd/misp-csv-watch.timer`
+  runs it every 5 minutes.
 
 - **`sources.csv`** — not code, but the config every converter above
   reads: `name,url,parser` per row.
@@ -249,8 +246,8 @@ for the full incident writeup of the day all three issues were found.
 
 ## Requirements
 
-`scripts/run_feeds.py` and the individual converters are standard-library
-only (`urllib`/`subprocess`, no external deps beyond `curl` on PATH).
+`feed_to_misp.py` and `threatfox_to_misp.py` are standard-library only
+(`urllib`, no external deps).
 `scripts/sync_github_to_misp.py` needs `pymisp` and `python-dotenv` — see
 the root [`requirements.txt`](requirements.txt) (`pip install -r
 requirements.txt`). `Integration/misp-ti-integration/` has its own,

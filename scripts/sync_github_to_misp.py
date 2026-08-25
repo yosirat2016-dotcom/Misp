@@ -22,9 +22,28 @@ from urllib.error import URLError
 
 from dotenv import load_dotenv
 
-import run_feeds
+import feed_to_misp
+import threatfox_to_misp
 
 REQUEST_TIMEOUT_SECONDS = 30
+
+
+def run_generic(name: str, url: str):
+    return feed_to_misp.convert_url_to_feed(url, out_base="data/misp_feed", org=name)
+
+
+def run_threatfox(name: str, url: str):
+    return threatfox_to_misp.convert(out_base=f"data/misp_feed/{name}", org=name)
+
+
+# parser column in sources.csv -> handler. Only sources that fit the
+# generic RSS/JSON/CSV/text converter, or have their own dedicated script
+# alongside this one, are supported here - see README.md's file-by-file
+# guide for what parser values exist and why.
+PARSERS = {
+    "generic": run_generic,
+    "threatfox": run_threatfox,
+}
 
 
 def download_sources_csv(url: str) -> list[dict]:
@@ -113,7 +132,7 @@ def main():
     results = []
     for row in rows:
         name, url, parser_key = row["name"], row["url"], row["parser"].strip()
-        handler = run_feeds.PARSERS.get(parser_key)
+        handler = PARSERS.get(parser_key)
         print(f"\n=== {name} ({parser_key}) ===")
         if handler is None:
             print(f"  unknown parser '{parser_key}', skipping")
