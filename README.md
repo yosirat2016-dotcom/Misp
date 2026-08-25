@@ -27,8 +27,7 @@ source:
 | name | source |
 |---|---|
 | `fortiguard-psirt` | Fortinet PSIRT advisories (RSS) |
-| `hp-security-bulletins` | HP security bulletins, all categories (RSS) |
-| `hp-Printers` | HP security bulletins, printers category only (RSS) |
+| `hp-Product` | HP security bulletins, all categories, gb-en (RSS) |
 | `microsoft-win11` | Microsoft Security Update Guide (RSS) |
 
 The sync only ever processes exactly what's in `sources.csv` — there's
