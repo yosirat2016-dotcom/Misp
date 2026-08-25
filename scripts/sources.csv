@@ -1,4 +1,10 @@
 name,url,parser
 fortiguard-psirt,https://filestore.fortinet.com/fortiguard/rss/ir.xml,generic
 hp-Product,https://support.hp.com/wcc-widget-services/gb-en/rss-feed?category=all,generic
-microsoft-win11,https://api.msrc.microsoft.com/update-guide/rss?utm_source=chatgpt.com,generic
+microsoft-Product,https://api.msrc.microsoft.com/update-guide/rss?utm_source=chatgpt.com,generic
+adobe-product,https://coldfusion.adobe.com/feed/,generic
+adobe-premium,https://www.premiumbeat.com/blog/category/premiere-2/feed/,generic
+citrix-Blog,https://www.citrix.com/blogs/feed,generic
+citrix-Security-&-Compliance-Feed,https://www.citrix.com/blogs/category/security-compliance/feed/,generic
+sonicwall,https://psirtapi.global.sonicwall.com/api/v1/feed/rss.xml,generic
+github,https://docs.gitlab.com/releases/patch-releases.xml,generic
