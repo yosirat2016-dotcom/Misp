@@ -3,10 +3,12 @@ cisa-kev,https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerab
 ipsum-level3,https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt,generic
 fortiguard-psirt,https://filestore.fortinet.com/fortiguard/rss/ir.xml,generic
 hp-security-bulletins,https://support.hp.com/wcc-widget-services/us-en/rss-feed?category=all,generic
+hp-Printers,https://support.hp.com/wcc-widget-services/gb-en/rss-feed?category=printers&id=268161584258236861743175748903686,generic
+microsoft-win11,https://api.msrc.microsoft.com/update-guide/rss?utm_source=chatgpt.com,generic
+threatfox-abuse-ch,https://threatfox-api.abuse.ch/api/v1/,threatfox
 CISA (Cybersecurity & Infrastructure Security Agency),https://www.cisa.gov/,needs-research
 AlienVault OTX,https://otx.alienvault.com/,needs-research
 Abuse.ch - Malware Bazaar,https://bazaar.abuse.ch/,needs-research
-threatfox-abuse-ch,https://threatfox-api.abuse.ch/api/v1/,threatfox
 Abuse.ch - URLhaus,https://urlhaus.abuse.ch/,needs-research
 Shodan,https://www.shodan.io/,needs-research
 Team Cymru,https://www.team-cymru.com/,needs-research
@@ -14,4 +16,3 @@ GreyNoise,https://www.greynoise.io/,needs-research
 Hybrid Analysis,https://www.hybrid-analysis.com/,needs-research
 Triage,https://triage.abuse.ch/,needs-research
 AbuseIPDB,https://www.abuseipdb.com/,needs-research
-
