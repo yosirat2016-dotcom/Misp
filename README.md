@@ -20,28 +20,36 @@ below.
 
 ## Sources
 
-| name | source | parser |
-|---|---|---|
-| `cisa-kev` | CISA Known Exploited Vulnerabilities catalog | generic |
-| `ipsum-level3` | IPsum malicious IP blocklist | generic |
-| `fortiguard-psirt` | Fortinet PSIRT advisories (RSS) | generic |
-| `hp-security-bulletins` | HP security bulletins (RSS) | generic |
-| `threatfox-abuse-ch` | abuse.ch ThreatFox API | dedicated (`threatfox_to_misp.py`) |
+Current contents of [`scripts/sources.csv`](scripts/sources.csv) — all
+`parser=generic` right now, so no API keys are needed for any active
+source:
 
-Add a new source that's plain RSS/JSON/CSV/text: just add a row to
-`sources.csv` with `parser=generic` — no code change needed. A source
-that needs special handling (auth, pagination, a JS-rendered page with
-no visible feed) needs a small dedicated script exposing a `convert(...)`
-function, registered in `sync_github_to_misp.py`'s `PARSERS` dict. See
-`scripts/threatfox_to_misp.py` for an example of that pattern.
+| name | source |
+|---|---|
+| `fortiguard-psirt` | Fortinet PSIRT advisories (RSS) |
+| `hp-security-bulletins` | HP security bulletins, all categories (RSS) |
+| `hp-Printers` | HP security bulletins, printers category only (RSS) |
+| `microsoft-win11` | Microsoft Security Update Guide (RSS) |
+
+The sync only ever processes exactly what's in `sources.csv` — there's
+no other hidden source list anywhere in the pipeline.
+
+Add a new source that's plain RSS/JSON/CSV/text: just add a row with
+`parser=generic` — no code change needed. A source that needs special
+handling (auth, pagination, a JS-rendered page with no visible feed)
+needs a small dedicated script exposing a `convert(...)` function,
+registered in `sync_github_to_misp.py`'s `PARSERS` dict. `threatfox_to_misp.py`
+still exists in the repo as a worked example of that pattern (abuse.ch
+ThreatFox's real API vs. its JS-rendered `/browse/` page) even though
+no active `sources.csv` row currently uses it.
 
 NVD and Israel's gov.il CVE advisories were previously supported via
 dedicated scripts (`nvd_to_misp.py`, `govil_cve_to_misp.py`) but those
-were removed to keep the pipeline to just the generic converter plus
-one dedicated example. Re-adding either would mean rebuilding that
-dedicated-script logic from scratch — both sources need it: NVD nests
-everything under a `cve: {...}` wrapper the generic converter can't
-reach, and gov.il is a JS-rendered SPA behind a WAF with no visible feed.
+were deleted to simplify the pipeline. Re-adding either would mean
+rebuilding that dedicated-script logic from scratch — both sources need
+it: NVD nests everything under a `cve: {...}` wrapper the generic
+converter can't reach, and gov.il is a JS-rendered SPA behind a WAF with
+no visible feed.
 
 ## Importing into MISP
 
@@ -84,10 +92,10 @@ A Feed existing doesn't mean its data was imported - check both:
 
 1. **The Feed itself was registered:** **Sync Actions → Feeds** - look for
    it Enabled/Caching-enabled with the right URL (e.g.
-   `http://172.17.0.1:8000/www-cisa-gov/`).
+   `http://172.17.0.1:8000/filestore-fortinet-com/`).
 2. **The events were actually pulled in:** **Event Actions → List Events**,
-   filter by Org (`CISA`, `Abuse.ch - ThreatFox`, ...) or by tag
-   (`source:www-cisa-gov`). A registered-but-empty feed usually means
+   filter by Org (`fortiguard-psirt`, `hp-security-bulletins`, ...) or by
+   tag (`source:filestore-fortinet-com`). A registered-but-empty feed usually means
    `fetch_feed()` triggered but the pull itself failed - check
    **Administration → Jobs** on the MISP side.
 
@@ -146,14 +154,17 @@ data/
   can't execute JavaScript (fails on client-rendered SPA pages).
 
 - **`threatfox_to_misp.py`** — dedicated converter for abuse.ch's
-  ThreatFox. Exists because ThreatFox's `/browse/` page looks like it has
-  real data in a browser, but that table is populated client-side
-  (DataTables JS) — the raw HTML has none of it, which is why the
-  generic converter previously captured literal `<!doctype html>` as
-  junk. Uses ThreatFox's real API instead (`POST
+  ThreatFox, kept in the repo as a worked example even though no active
+  `sources.csv` row uses it right now. Exists because ThreatFox's
+  `/browse/` page looks like it has real data in a browser, but that
+  table is populated client-side (DataTables JS) — the raw HTML has none
+  of it, which is why the generic converter previously captured literal
+  `<!doctype html>` as junk. Uses ThreatFox's real API instead (`POST
   https://threatfox-api.abuse.ch/api/v1/`, `Auth-Key` header — same free
   abuse.ch key as URLhaus), with correct `ioc_type` → MISP attribute
   mapping including the `ip:port` → MISP's composite `ip-dst|port` type.
+  To reactivate: add a row back to `sources.csv` with `parser=threatfox`
+  and set `ABUSECH_API_KEY` in `.env`.
 
 - **`sync_github_to_misp.py`** — the CSV-driven, scheduled automation
   entry point. Downloads `sources.csv` straight from GitHub (so a `git
